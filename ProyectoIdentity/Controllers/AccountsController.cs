@@ -49,8 +49,12 @@ namespace ProyectoIdentity.Controllers
                 var result = await _userManagaer.CreateAsync(user, viewModel.Password);
                 if(result.Succeeded)
                 {
-                    await _signInManagaer.SignInAsync(user, false);
-                    return LocalRedirect(returnurl);
+                    var code = await _userManagaer.GenerateEmailConfirmationTokenAsync(user);
+                    var returnUrl = Url.Action("ConfirmedEmail", "Accounts", new { userId = user.Id, code = code}, protocol: HttpContext.Request.Scheme);
+                    await _emailsender.SendEmailAsync(viewModel.Email, "Confirm your account", "To Confirm your email click here:: <a href=\"" + returnUrl + "\">Link</a> ");
+
+                    //await _signInManagaer.SignInAsync(user, false);
+                    return RedirectToAction("ConfirmEmail","Accounts");
                 }
                 ValidateErrors(result);
             }
@@ -136,6 +140,7 @@ namespace ProyectoIdentity.Controllers
         public IActionResult ForgotPasswordConfirmation() => View();
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult ResetPassword (string? code = null, string? email = null)
         {
             return code == null ? View("Error") : View();
@@ -160,6 +165,26 @@ namespace ProyectoIdentity.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult RecoverPasswordConfirmation() => View();
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ConfirmEmail() => View();
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> ConfirmedEmail(string userId, string code)
+        {
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(code))
+                return View("Error");
+
+            var user = await _userManagaer.FindByIdAsync(userId);
+
+            if (user == null) 
+                return View("Error");
+
+            var result = await _userManagaer.ConfirmEmailAsync(user, code);
+            return View(result.Succeeded ? "ConfirmedEmail" : "Error");
+        }
     }
 }

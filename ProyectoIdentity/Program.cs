@@ -23,6 +23,7 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireLowercase = true;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(1);
     options.Lockout.MaxFailedAccessAttempts = 3;
+    options.SignIn.RequireConfirmedEmail = true;
     
 });
 builder.Services.AddTransient<IEmailSender, MailJetEmailSender>();
